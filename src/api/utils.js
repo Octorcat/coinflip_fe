@@ -71,7 +71,6 @@ export const getResult = async (wallet, betAmount, selectedSide) => {
     program.programId
   );
 
-
   const [force] = await anchor.web3.PublicKey.findProgramAddress(
     [
       Buffer.from(RANDOM_SEED),
@@ -114,21 +113,15 @@ export const getResult = async (wallet, betAmount, selectedSide) => {
     const rand =  randomness.fulfilled();
     
     if(rand[0] % 2 == guess) {
-      const claim_bet = await program.rpc.claimBet(
-        {
-          accounts: {
-            user: wallet.publicKey,
-            globalState,
-            vault,
-            userInfo,
-            random,
-            systemProgram: SystemProgram.programId
-          },
-        }
-      );
-      return true;
+      return {
+        status: true,
+        force: force
+      }
     } else {
-      return false;
+      return {
+        status: false,
+        force: undefined
+      };
     }
   } catch (error) {
     console.log(error);
@@ -142,4 +135,53 @@ export const getProvide = async (wallet) => {
     opts.preflightCommitment
   );
   return provider;
+}
+
+export const getClaim = async (wallet, force) => {
+  const provider = await getProvide(wallet);
+  const program = new Program(IDL, programID, provider);
+
+  const [ globalState ] = await anchor.web3.PublicKey.findProgramAddress(
+    [
+      Buffer.from(GLOBAL_STATE_SEED),
+      OWNER_PUBKEY.toBuffer()
+    ],
+    program.programId
+  );
+
+  const [ vault ] = await anchor.web3.PublicKey.findProgramAddress(
+    [
+      Buffer.from(VAULT_SEED)
+    ],
+    program.programId
+  );
+
+  const [ userInfo ] = await anchor.web3.PublicKey.findProgramAddress(
+    [
+      Buffer.from(USER_INFO_SEED),
+      wallet.publicKey.toBuffer()
+    ],
+    program.programId
+  );
+
+  const random = randomnessAccountAddress(force.toBuffer());
+
+  try{
+    const claim_bet = await program.rpc.claimBet(
+      {
+        accounts: {
+          user: wallet.publicKey,
+          globalState,
+          vault,
+          userInfo,
+          random,
+          systemProgram: SystemProgram.programId
+        },
+      }
+    );
+    return true;
+  } catch(err) {
+    console.log(err);
+    return false;
+  }
 }

@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { getWalletSOLBalance, getResult } from "../api/utils.js";
+import { getWalletSOLBalance, getResult, getClaim } from "../api/utils.js";
 import { toast } from "react-toastify";
 import Win from "@/components/Win";
 import Lost from "@/components/Lost";
@@ -17,6 +17,7 @@ export default function Home() {
   const [balance, setBalance] = useState<number>(0);
   const [showResult, setShowResult] = useState(false);
   const [result, setResult] = useState(false);
+  const [force, setForce] = useState(undefined);
   
   useEffect(() => {
     if(wallet.connected)
@@ -53,19 +54,36 @@ export default function Home() {
     setLoading(true);
     const result:any = await getResult(wallet, selectedAmount, selectedSide);
     setLoading(false);
-    setResult(result);
-    setShowResult(true);
-    getSolBalance();
+    if(result.status) {
+      setForce(result.force);
+      setResult(result.status);
+      setShowResult(true);
+    } else {
+      setForce(undefined);
+      setResult(result.status);
+      setShowResult(true);
+    }
   }
 
   const setResultStatus = () => {
     setShowResult(false);
   }
 
+  const actionClaim = async () => {
+    if(force) {
+      const result = await getClaim(wallet, force);
+      if(result) toast.success("You got the claim");
+      else toast.error("Something wrong!");
+    } else{
+      toast.warning("Something wrong!");
+    }
+    setShowResult(false);
+  }
+
   return (
     <>
       {
-        showResult ? (result ? <Win setResultStatus = {setResultStatus} /> : <Lost setResultStatus = {setResultStatus}/>) : (
+        showResult ? (result ? <Win setResultStatus = {setResultStatus} actionClaim = {actionClaim} /> : <Lost setResultStatus = {setResultStatus}/>) : (
           !loading ? <CoinFlip selectedSide = {selectedSide} 
             selectedAmount ={selectedAmount}
             balance = {balance} 
