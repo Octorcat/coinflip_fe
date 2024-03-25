@@ -63,6 +63,7 @@ export default function Home() {
       setResult(result.status);
       setShowResult(true);
     }
+    getSolBalance();
   }
 
   const setResultStatus = () => {
@@ -78,6 +79,7 @@ export default function Home() {
       toast.warning("Something wrong!");
     }
     setShowResult(false);
+    getSolBalance();
   }
 
   return (
